@@ -1,0 +1,6 @@
+image: /home/user/ros/lost_navigation/src/ros_map/test_0.pgm
+resolution: 0.050000
+origin: [-20.600000, -12.476617, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
