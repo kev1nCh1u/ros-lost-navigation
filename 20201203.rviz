@@ -83,14 +83,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 15.998404502868652
-        Min Value: 15.194437980651855
+        Max Value: 4.8294572830200195
+        Min Value: 2.887674331665039
         Value: true
       Axis: X
       Channel Name: intensity
       Class: rviz/LaserScan
-      Color: 138; 226; 52
-      Color Transformer: AxisColor
+      Color: 239; 41; 41
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -145,16 +145,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 43.676856994628906
+      Distance: 28.497150421142578
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 7.937660217285156
-        Y: 0.5001741647720337
-        Z: -6.020923137664795
+        X: 6.024550437927246
+        Y: 0.13830476999282837
+        Z: -4.3961029052734375
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -182,4 +182,4 @@ Window Geometry:
     collapsed: false
   Width: 1200
   X: 235
-  Y: 37
+  Y: 27

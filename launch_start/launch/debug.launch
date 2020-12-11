@@ -2,7 +2,7 @@
 
 <launch>
 
-    <node name="urg_node" pkg="urg_node" type="urg_node" output="screen">
+    <!-- <node name="urg_node" pkg="urg_node" type="urg_node" output="screen">
         <param name="ip_address" value=""/>
         <param name="serial_port" value="/dev/ttyACM0"/>
         <param name="serial_baud" value="115200"/>
@@ -10,13 +10,13 @@
         <param name="calibrate_time" value="true"/>
         <param name="publish_intensity" value="false"/>
         <param name="publish_multiecho" value="false"/>
-        <param name="angle_min" value="-3.14"/>
-        <param name="angle_max" value="3.14"/>
-    </node>
+        <param name="angle_min" value="-1.5707963"/>
+        <param name="angle_max" value="1.5707963"/>
+    </node> -->
   
     <!-- static_transform_publisher x y z yaw pitch roll frame_id child_frame_id period_in_ms -->
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 base_link laser 100" />
-
+    
     <node name="map_server" pkg="map_server" type="map_server" args="/home/user/ros/lost_navigation/src/ros_map/test_0.yaml"  output="screen"/>
     <node name="odometry" pkg="odometry" type="odometry"  output="screen"/>
     

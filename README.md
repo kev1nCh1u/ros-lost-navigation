@@ -1,13 +1,12 @@
 # lost navigation
 
 ## start
-    roscore
-    
+    roslaunch urg_node urg_lidar.launch
+    // rosrun hokuyo_node hokuyo_node
     rosrun map_server map_server /home/user/ros/lost_navigation/src/ros_map/test_0.yaml
     rosrun amcl amcl
     rosrun odometry odometry
-    rosrun hokuyo_node hokuyo_node
-
+    
     rosrun rviz rviz -d /home/user/ros/lost_navigation/src/20201203.rviz
 
 ## debug
