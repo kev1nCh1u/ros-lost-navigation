@@ -1,5 +1,7 @@
 # lost navigation
 
+## launch start
+    roslaunch launch_start start.launch
 ## start
     roslaunch urg_node urg_lidar.launch
     // rosrun hokuyo_node hokuyo_node
