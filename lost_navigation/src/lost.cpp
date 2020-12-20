@@ -131,6 +131,8 @@ void Lost::lostCalc(float orgX, float orgY)
       base_cloud.points[i].y = cloud.points[i].y + orgY;
     }
 
+    // listener.transformVector("/map", cloud.points, base_cloud.points);
+
     // pcl tf
     // sensor_msgs::PointCloud2 base_cloud2;
     // pcl_ros::transformPointCloud("/map", cloud2, base_cloud2, listener);
