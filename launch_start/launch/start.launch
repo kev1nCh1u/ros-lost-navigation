@@ -15,7 +15,7 @@
     </node>
   
     <!-- static_transform_publisher x y z yaw pitch roll frame_id child_frame_id period_in_ms -->
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 base_link laser 100" />
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 base_link laser 1" />
 
     <node name="map_server" pkg="map_server" type="map_server" args="/home/user/ros/lost_navigation/src/ros_map/test_0.yaml"  output="screen"/>
     <node name="odometry" pkg="odometry" type="odometry"  output="screen"/>

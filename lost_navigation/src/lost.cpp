@@ -36,7 +36,7 @@ private:
   void scanCallback(const sensor_msgs::LaserScan &msg);
   void amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
-  void lostCalc(float orgX, float orgY);
+  void lostCalc(float orgX = 0.0, float orgY = 0.0, float rotaYaw = 0.0);
   void whileLoop();
 
   // var
@@ -54,39 +54,45 @@ public:
 Lost::Lost(/* args */)
 {
   // timer = n.createTimer(ros::Duration(1.0), &Lost::timerCallback, this);
-  subMap = n.subscribe("map", 1000, &Lost::mapCallback, this);
-  subScan = n.subscribe("scan", 1000, &Lost::scanCallback, this);
-  subAmclPose = n.subscribe("amcl_pose", 1000, &Lost::amclPoseCallback, this);
+  subMap = n.subscribe("map", 10, &Lost::mapCallback, this);
+  subScan = n.subscribe("scan", 10, &Lost::scanCallback, this);
+  subAmclPose = n.subscribe("amcl_pose", 10, &Lost::amclPoseCallback, this);
   // subOdom = n.subscribe("odom", 1000, &Lost::odomCallback, this);
   pointPub = n.advertise<sensor_msgs::PointCloud>("point", 0, this);
 
-  // Lost::whileLoop();
+  Lost::whileLoop();
 }
 
 Lost::~Lost()
 {
 }
 
+/***************************************************************************************************************************************
+* whileLoop
+* ***************************************************************************************************************************************/
 void Lost::whileLoop()
 {
   ros::Rate loop_rate(10);
   int loopCount = 0;
   while (ros::ok())
   {
+    Lost::lostCalc();
 
     ros::spinOnce();
     loop_rate.sleep();
     ++loopCount;
   }
-  
 }
 
-void Lost::lostCalc(float orgX, float orgY)
+/***************************************************************************************************************************************
+* lostCalc
+* ***************************************************************************************************************************************/
+void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
 {
-
+  // define
   laser_geometry::LaserProjection projector_;
-  tf::TransformListener listener;
-  // tf::StampedTransform transformVec;
+  tf::TransformListener listener(ros::Duration(10));
+  tf::StampedTransform transform;
 
   // map msg
   // std::cout << "map:" << mapMsg.info << std::endl;
@@ -104,27 +110,44 @@ void Lost::lostCalc(float orgX, float orgY)
   // scan msg
   // std::cout << "scan size:" << scanMsg.ranges.size() << std::endl;
   sensor_msgs::PointCloud cloud;
-  sensor_msgs::PointCloud2 cloud2;
+  // sensor_msgs::PointCloud2 cloud2;
   projector_.projectLaser(scanMsg, cloud);
-  projector_.projectLaser(scanMsg, cloud2);
+  // projector_.projectLaser(scanMsg, cloud2);
 
   try
   {
     sensor_msgs::PointCloud base_cloud;
 
     // tf
-    listener.waitForTransform("/map", "/base_link", ros::Time(0), ros::Duration(0.2));
-    // listener.lookupTransform("/map", "/base_link", ros::Time(0), transformVec);
-    // float orgX = transformVec.getOrigin().x();
-    // float orgY = transformVec.getOrigin().y();
+    listener.waitForTransform("/map", "/base_link", ros::Time(0), ros::Duration(5.0));
+    listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+    float orgX = transform.getOrigin().x();
+    float orgY = transform.getOrigin().y();
+    float rotaYaw = tf::getYaw(transform.getRotation());
+
+    // geometry_msgs::PointStamped laser_point;
+    // laser_point.header.frame_id = "base_link";
+    // laser_point.header.stamp = ros::Time();
+    // laser_point.point.x = 0.0;
+    // laser_point.point.y = 0.0;
+    // laser_point.point.z = 0.0;
+    // geometry_msgs::PointStamped base_point;
+    // listener.transformPoint("map", laser_point, base_point);
+    // orgX = base_point.point.x;
+    // orgY = base_point.point.y;
+    // orgZ = base_point.point.z;
+
+    // scanMsg.header.stamp = ros::Time();
+    // projector_.transformLaserScanToPointCloud("/map",scanMsg, cloud, listener);
 
     std::cout << "===============================================================" << std::endl;
-    std::cout << "org xy:" << orgX << " " << orgY << std::endl;
+    std::cout << "transform:" << orgX << ", " << orgY << ", " << rotaYaw << std::endl;
 
     // org error
     base_cloud = cloud;
     base_cloud.header.frame_id = "map";
-    std::cout << "base_cloud.header.frame_id" << " " << base_cloud.header.frame_id << std::endl;
+    std::cout << "base_cloud.header.frame_id"
+              << " " << base_cloud.header.frame_id << std::endl;
     for (int i = 0; i < base_cloud.points.size(); i++)
     {
       base_cloud.points[i].x = cloud.points[i].x + orgX;
@@ -148,9 +171,12 @@ void Lost::lostCalc(float orgX, float orgY)
       int data_num = width + height * mapMsg.info.width;
       // std::cout << "base_cloud pixel wh:" << width << " " << height << std::endl;
       // std::cout << "data_num:" << data_num << std::endl;
-      if (mapMsg.data[data_num] == 100)
+      if (data_num >= 0)
       {
-        lostCount++;        
+        if (mapMsg.data[data_num] == 100)
+        {
+          lostCount++;
+        }
       }
     }
     float lostRate = float(base_cloud.points.size() - lostCount) / base_cloud.points.size() * 100;
@@ -162,7 +188,6 @@ void Lost::lostCalc(float orgX, float orgY)
   {
     std::cerr << e.what() << '\n';
   }
-  
 }
 
 /***************************************************************************************************************************************
@@ -179,7 +204,7 @@ void Lost::amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
   // std::cout << "org xy:" << msg.pose.pose.position.x << " " << msg.pose.pose.position.y << std::endl;
 
-  Lost::lostCalc(msg.pose.pose.position.x, msg.pose.pose.position.y);
+  // Lost::lostCalc(msg.pose.pose.position.x, msg.pose.pose.position.y);
 }
 
 /***************************************************************************************************************************************
