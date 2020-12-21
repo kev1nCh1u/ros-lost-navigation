@@ -42,6 +42,7 @@ private:
   // var
   nav_msgs::OccupancyGrid mapMsg;
   sensor_msgs::LaserScan scanMsg;
+  geometry_msgs::PoseWithCovarianceStamped amclMsg;
 
 public:
   Lost(/* args */);
@@ -110,9 +111,9 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
   // scan msg
   // std::cout << "scan size:" << scanMsg.ranges.size() << std::endl;
   sensor_msgs::PointCloud cloud;
-  // sensor_msgs::PointCloud2 cloud2;
   projector_.projectLaser(scanMsg, cloud);
-  // projector_.projectLaser(scanMsg, cloud2);
+  sensor_msgs::PointCloud2 cloud2;
+  projector_.projectLaser(scanMsg, cloud2);
 
   try
   {
@@ -135,15 +136,14 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
     // listener.transformPoint("map", laser_point, base_point);
     // orgX = base_point.point.x;
     // orgY = base_point.point.y;
-    // orgZ = base_point.point.z;
 
-    // scanMsg.header.stamp = ros::Time();
+    // listener.waitForTransform("/map", "/laser", ros::Time(0), ros::Duration(5.0));
     // projector_.transformLaserScanToPointCloud("/map",scanMsg, cloud, listener);
 
     std::cout << "===============================================================" << std::endl;
     std::cout << "transform:" << orgX << ", " << orgY << ", " << rotaYaw << std::endl;
 
-    // org error
+    // point cloud transform
     base_cloud = cloud;
     base_cloud.header.frame_id = "map";
     std::cout << "base_cloud.header.frame_id"
@@ -152,6 +152,7 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
     {
       base_cloud.points[i].x = cloud.points[i].x + orgX;
       base_cloud.points[i].y = cloud.points[i].y + orgY;
+      // listener.transformPoint("map", cloud.points[i], base_cloud.points[i]);
     }
 
     // listener.transformVector("/map", cloud.points, base_cloud.points);
@@ -202,6 +203,8 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
 * ***************************************************************************************************************************************/
 void Lost::amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
+  amclMsg = msg;
+
   // std::cout << "org xy:" << msg.pose.pose.position.x << " " << msg.pose.pose.position.y << std::endl;
 
   // Lost::lostCalc(msg.pose.pose.position.x, msg.pose.pose.position.y);
