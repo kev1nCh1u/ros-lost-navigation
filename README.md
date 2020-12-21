@@ -16,3 +16,6 @@
 ## Error: Device /dev/ttyACM0 is already locked
     lsof | grep /dev/ttyACM0
     kill -9 pocess_id
+
+## test
+    launch-prefix="rosclean purge"
