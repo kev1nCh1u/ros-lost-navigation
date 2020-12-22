@@ -36,7 +36,7 @@ private:
   void scanCallback(const sensor_msgs::LaserScan &msg);
   void amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
-  void lostCalc(float orgX = 0.0, float orgY = 0.0, float rotaYaw = 0.0);
+  void lostCalc();
   void whileLoop();
 
   // var
@@ -54,6 +54,8 @@ public:
  * ************************************************************************************************************/
 Lost::Lost(/* args */)
 {
+  ROS_INFO("#### lost navigation start ####");
+
   // timer = n.createTimer(ros::Duration(1.0), &Lost::timerCallback, this);
   subMap = n.subscribe("map", 10, &Lost::mapCallback, this);
   subScan = n.subscribe("scan", 10, &Lost::scanCallback, this);
@@ -61,7 +63,7 @@ Lost::Lost(/* args */)
   // subOdom = n.subscribe("odom", 1000, &Lost::odomCallback, this);
   pointPub = n.advertise<sensor_msgs::PointCloud>("point", 0, this);
 
-  Lost::whileLoop();
+  // Lost::whileLoop();
 }
 
 Lost::~Lost()
@@ -87,7 +89,7 @@ void Lost::whileLoop()
 /***************************************************************************************************************************************
 * lostCalc
 * ***************************************************************************************************************************************/
-void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
+void Lost::lostCalc()
 {
   // define
   laser_geometry::LaserProjection projector_;
@@ -109,11 +111,10 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
 
   // scan msg
   // std::cout << "scan size:" << scanMsg.ranges.size() << std::endl;
-  sensor_msgs::PointCloud cloud;
-  projector_.projectLaser(scanMsg, cloud);
+  // sensor_msgs::PointCloud cloud;
+  // projector_.projectLaser(scanMsg, cloud);
   sensor_msgs::PointCloud2 cloud2;
   projector_.projectLaser(scanMsg, cloud2);
-
   sensor_msgs::PointCloud base_cloud;
   sensor_msgs::PointCloud2 base_cloud2;
 
@@ -170,10 +171,6 @@ void Lost::lostCalc(float orgX, float orgY, float rotaYaw)
 void Lost::amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
   amclMsg = msg;
-
-  // std::cout << "org xy:" << msg.pose.pose.position.x << " " << msg.pose.pose.position.y << std::endl;
-
-  // Lost::lostCalc(msg.pose.pose.position.x, msg.pose.pose.position.y);
 }
 
 /***************************************************************************************************************************************

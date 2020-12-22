@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+
+<launch>
+    <node name="ros_clean" pkg="ros_clean" type="clean.bash" output="screen"/>
+</launch>
