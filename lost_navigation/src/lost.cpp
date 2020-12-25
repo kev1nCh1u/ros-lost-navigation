@@ -29,6 +29,8 @@ private:
   ros::Subscriber subAmclPose;
   ros::Subscriber subOdom;
   ros::Publisher pointPub;
+  ros::Publisher testPointPub;
+  ros::Publisher mapPointPub;
 
   // fuc
   void timerCallback(const ros::TimerEvent &);
@@ -62,6 +64,8 @@ Lost::Lost(/* args */)
   subAmclPose = n.subscribe("amcl_pose", 10, &Lost::amclPoseCallback, this);
   // subOdom = n.subscribe("odom", 1000, &Lost::odomCallback, this);
   pointPub = n.advertise<sensor_msgs::PointCloud>("point", 0, this);
+  testPointPub = n.advertise<sensor_msgs::PointCloud>("testPoint", 0, this);
+  mapPointPub = n.advertise<sensor_msgs::PointCloud>("mapPoint", 0, this);
 
   // Lost::whileLoop();
 }
@@ -91,25 +95,12 @@ void Lost::whileLoop()
 * ***************************************************************************************************************************************/
 void Lost::lostCalc()
 {
-  // define
+  ///////////// define ///////////////////
   laser_geometry::LaserProjection projector_;
   tf::TransformListener listener(ros::Duration(10));
   tf::StampedTransform transform;
 
-  // map msg
-  // std::cout << "map:" << mapMsg.info << std::endl;
-  // std::cout << "map size:" << mapMsg.data.size() << std::endl;
-  // std::cout << "map pos:";
-  // for(int i = 0; i <  mapMsg.data.size(); i++)
-  // {
-  //   if(mapMsg.data[i] == 100)
-  //   {
-  //     std::cout << i << "/" << i % mapMsg.info.width << "/" << i / mapMsg.info.width << ", " ;
-  //   }
-  // }
-  // std::cout << std::endl;
-
-  // scan msg
+  //////////// scan msg /////////////////
   // std::cout << "scan size:" << scanMsg.ranges.size() << std::endl;
   // sensor_msgs::PointCloud cloud;
   // projector_.projectLaser(scanMsg, cloud);
@@ -118,12 +109,10 @@ void Lost::lostCalc()
   sensor_msgs::PointCloud base_cloud;
   sensor_msgs::PointCloud2 base_cloud2;
 
+  //////////// tf ///////////////////////
   try
   {
-    // tf
     listener.waitForTransform("/map", "/base_link", ros::Time(0), ros::Duration(5.0));
-
-    // pcl tf
     cloud2.header.stamp = ros::Time(0);
     pcl_ros::transformPointCloud("/map", cloud2, base_cloud2, listener);
     sensor_msgs::convertPointCloud2ToPointCloud(base_cloud2, base_cloud);
@@ -132,23 +121,62 @@ void Lost::lostCalc()
   {
     std::cerr << e.what() << '\n';
   }
-
   std::cout << "===============================================================" << std::endl;
+
+  /////////// map msg //////////////////
+  sensor_msgs::PointCloud map_cloud;
+  map_cloud.header = base_cloud.header;
+  map_cloud.channels = base_cloud.channels;
+  geometry_msgs::Point32 mapPoint;
+  // std::cout << "map:" << mapMsg.info << std::endl;
+  // std::cout << "map size:" << mapMsg.data.size() << std::endl;
+  // std::cout << "map pos:";
+  int count_100 = 0, count_0 = 0, count_else = 0;
+  for(int i = 0; i <  mapMsg.data.size(); i++)
+  {
+    if(mapMsg.data[i] == 100)
+    {
+      float width = i % mapMsg.info.width;
+      float height =  i / mapMsg.info.width;
+      mapPoint.x = width * mapMsg.info.resolution + mapMsg.info.origin.position.x;
+      mapPoint.y = height  * mapMsg.info.resolution + mapMsg.info.origin.position.y;
+      map_cloud.points.push_back(mapPoint);
+      // std::cout << i << "/" << i % mapMsg.info.width << "/" << i / mapMsg.info.width << ", " ;
+      count_100 ++;
+    }
+    else if(mapMsg.data[i] == 0)
+    {
+      count_0 ++;
+    }
+    else
+    {
+      count_else ++;
+    }
+  }
+  std::cout << std::endl;
+  std::cout << "100:" << count_100 << " 0:" << count_0 << " else:" << count_else << std::endl;
+
+  //////////// calculate lost //////////////
   // std::cout << "base_cloud size:" << base_cloud.points.size() << std::endl;
   int lostCount = 0;
+  sensor_msgs::PointCloud test_cloud;
+  test_cloud.header = base_cloud.header;
+  // test_cloud.channels = base_cloud.channels;
   for (int i = 0; i < base_cloud.points.size(); i++)
   {
     // std::cout << "test" << base_cloud.points[i].x << " " << mapMsg.info.origin.position.x << std::endl;
     float width = (base_cloud.points[i].x - mapMsg.info.origin.position.x) / mapMsg.info.resolution;
     float height = mapMsg.info.height - (base_cloud.points[i].y - mapMsg.info.origin.position.y) / mapMsg.info.resolution;
     int data_num = width + height * mapMsg.info.width;
-    // std::cout << "base_cloud pixel wh:" << width << " " << height << std::endl;
-    // std::cout << "data_num:" << data_num << std::endl;
+    
     if (data_num >= 0)
     {
       if (mapMsg.data[data_num] == 100)
       {
         lostCount++;
+        std::cout << "base_cloud pixel wh:" << width << " " << height << std::endl;
+        std::cout << "data_num:" << data_num << std::endl;
+        test_cloud.points.push_back(base_cloud.points[i]);
       }
     }
   }
@@ -156,6 +184,8 @@ void Lost::lostCalc()
   std::cout << "lostCount:" << lostCount << " lostRate:" << lostRate << " " << std::endl;
 
   pointPub.publish(base_cloud);
+  testPointPub.publish(test_cloud);
+  mapPointPub.publish(map_cloud);
 }
 
 /***************************************************************************************************************************************
