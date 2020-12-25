@@ -129,7 +129,7 @@ void Lost::lostCalc()
   map_cloud.channels = base_cloud.channels;
   geometry_msgs::Point32 mapPoint;
   // std::cout << "map:" << mapMsg.info << std::endl;
-  // std::cout << "map size:" << mapMsg.data.size() << std::endl;
+  std::cout << "map size:" << mapMsg.data.size() << std::endl;
   // std::cout << "map pos:";
   int count_100 = 0, count_0 = 0, count_else = 0;
   for(int i = 0; i <  mapMsg.data.size(); i++)
@@ -169,7 +169,7 @@ void Lost::lostCalc()
     float height = mapMsg.info.height - (base_cloud.points[i].y - mapMsg.info.origin.position.y) / mapMsg.info.resolution;
     int data_num = width + height * mapMsg.info.width;
     
-    if (data_num >= 0)
+    if (data_num >= 0 && data_num < mapMsg.data.size())
     {
       if (mapMsg.data[data_num] == 100)
       {
