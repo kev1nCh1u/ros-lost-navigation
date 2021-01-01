@@ -1,5 +1,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float32.h"
+#include <iomanip>
 
 #include "nav_msgs/OccupancyGrid.h"
 #include "sensor_msgs/LaserScan.h"
@@ -29,8 +31,10 @@ private:
   ros::Subscriber subAmclPose;
   ros::Subscriber subOdom;
   ros::Publisher pointPub;
-  ros::Publisher testPointPub;
   ros::Publisher mapPointPub;
+  ros::Publisher lostPointPub;
+  ros::Publisher lostMapPointPub;
+  ros::Publisher lostRatePub;
 
   // fuc
   void timerCallback(const ros::TimerEvent &);
@@ -56,7 +60,7 @@ public:
  * ************************************************************************************************************/
 Lost::Lost(/* args */)
 {
-  ROS_INFO("#### lost navigation start ####");
+  ROS_INFO("lost navigation start");
 
   // timer = n.createTimer(ros::Duration(1.0), &Lost::timerCallback, this);
   subMap = n.subscribe("map", 10, &Lost::mapCallback, this);
@@ -64,8 +68,10 @@ Lost::Lost(/* args */)
   subAmclPose = n.subscribe("amcl_pose", 10, &Lost::amclPoseCallback, this);
   // subOdom = n.subscribe("odom", 1000, &Lost::odomCallback, this);
   pointPub = n.advertise<sensor_msgs::PointCloud>("point", 0, this);
-  testPointPub = n.advertise<sensor_msgs::PointCloud>("testPoint", 0, this);
   mapPointPub = n.advertise<sensor_msgs::PointCloud>("mapPoint", 0, this);
+  lostPointPub = n.advertise<sensor_msgs::PointCloud>("lostPoint", 0, this);
+  lostMapPointPub = n.advertise<sensor_msgs::PointCloud>("lostMapPoint", 0, this);
+  lostRatePub = n.advertise<std_msgs::Float32>("lostRate", 0, this);
 
   // Lost::whileLoop();
 }
@@ -129,7 +135,7 @@ void Lost::lostCalc()
   map_cloud.channels = base_cloud.channels;
   geometry_msgs::Point32 mapPoint;
   // std::cout << "map:" << mapMsg.info << std::endl;
-  std::cout << "map size:" << mapMsg.data.size() << std::endl;
+  // std::cout << "map size:" << mapMsg.data.size() << std::endl;
   // std::cout << "map pos:";
   int count_100 = 0, count_0 = 0, count_else = 0;
   for(int i = 0; i <  mapMsg.data.size(); i++)
@@ -153,20 +159,22 @@ void Lost::lostCalc()
       count_else ++;
     }
   }
-  std::cout << std::endl;
-  std::cout << "100:" << count_100 << " 0:" << count_0 << " else:" << count_else << std::endl;
+  // std::cout << std::endl;
+  // std::cout << "100:" << count_100 << " 0:" << count_0 << " else:" << count_else << std::endl;
 
   //////////// calculate lost //////////////
   // std::cout << "base_cloud size:" << base_cloud.points.size() << std::endl;
   int lostCount = 0;
-  sensor_msgs::PointCloud test_cloud;
-  test_cloud.header = base_cloud.header;
-  // test_cloud.channels = base_cloud.channels;
+  sensor_msgs::PointCloud lost_cloud;
+  sensor_msgs::PointCloud lost_map_cloud;
+  lost_cloud.header = base_cloud.header;
+  lost_map_cloud.header = base_cloud.header;
+  // lost_cloud.channels = base_cloud.channels;
   for (int i = 0; i < base_cloud.points.size(); i++)
   {
     // std::cout << "test" << base_cloud.points[i].x << " " << mapMsg.info.origin.position.x << std::endl;
-    float width = (base_cloud.points[i].x - mapMsg.info.origin.position.x) / mapMsg.info.resolution;
-    float height = mapMsg.info.height - (base_cloud.points[i].y - mapMsg.info.origin.position.y) / mapMsg.info.resolution;
+    int width = (base_cloud.points[i].x - mapMsg.info.origin.position.x) / mapMsg.info.resolution;
+    int height =  (base_cloud.points[i].y - mapMsg.info.origin.position.y) / mapMsg.info.resolution;
     int data_num = width + height * mapMsg.info.width;
     
     if (data_num >= 0 && data_num < mapMsg.data.size())
@@ -174,18 +182,27 @@ void Lost::lostCalc()
       if (mapMsg.data[data_num] == 100)
       {
         lostCount++;
-        std::cout << "base_cloud pixel wh:" << width << " " << height << std::endl;
-        std::cout << "data_num:" << data_num << std::endl;
-        test_cloud.points.push_back(base_cloud.points[i]);
+        // std::cout << "lost_pixel_w,h:" << width << "," << height << " data_num:" << data_num << std::endl;
+        lost_cloud.points.push_back(base_cloud.points[i]);
+
+        float mapWidth = data_num % mapMsg.info.width;
+        float mapHeight =  data_num / mapMsg.info.width;
+        mapPoint.x = mapWidth * mapMsg.info.resolution + mapMsg.info.origin.position.x;
+        mapPoint.y = mapHeight  * mapMsg.info.resolution + mapMsg.info.origin.position.y;
+        lost_map_cloud.points.push_back(mapPoint);
       }
     }
   }
   float lostRate = float(base_cloud.points.size() - lostCount) / base_cloud.points.size() * 100;
-  std::cout << "lostCount:" << lostCount << " lostRate:" << lostRate << " " << std::endl;
+  std::cout << "lostCount:" << lostCount << "\t lostRate:" << std::fixed << std::setprecision(2) << lostRate << "% " << std::endl;
+  std_msgs::Float32 lostRateMsg;
+  lostRateMsg.data = lostRate;
 
   pointPub.publish(base_cloud);
-  testPointPub.publish(test_cloud);
+  lostPointPub.publish(lost_cloud);
   mapPointPub.publish(map_cloud);
+  lostMapPointPub.publish(lost_map_cloud);
+  lostRatePub.publish(lostRateMsg);
 }
 
 /***************************************************************************************************************************************
